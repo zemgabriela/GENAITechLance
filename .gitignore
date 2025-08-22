@@ -1,0 +1,30 @@
+# Environment files
+.env
+*.env
+
+# Python cache and build
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+
+# Virtual environments
+venv/
+.env/
+.venv/
+
+# Editors/IDEs
+.vscode/
+.idea/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Jupyter notebooks
+.ipynb_checkpoints/
+
