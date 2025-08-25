@@ -149,3 +149,37 @@ def load_retriever_from_collection(
         }
     )
     return retriever
+
+# load retirever with metadata filtering
+def load_retriever_with_metadata_from_collection(
+    collection_name: str,
+    search_type: str = "similarity_score_threshold",
+    score_threshold: float = 0.3,
+    top_k: int = 5,
+    metadata_filter: dict = None
+):
+    """
+    Load a retriever from a Chroma collection with configurable retrieval behavior
+    and optional metadata filtering.
+
+    Args:
+        collection_name (str): Name of the Chroma collection.
+        search_type (str): Retrieval type ("similarity_score_threshold" or "mmr").
+        score_threshold (float): Minimum similarity score for retrieval.
+        top_k (int): Number of documents to return.
+        metadata_filter (dict): Optional filter, e.g. {"source": "assets/documents/vacation-policy.pdf"}
+
+    Returns:
+        Retriever: Configured retriever.
+    """
+    collection = load_chroma_collection(name=collection_name, directory="./persist")
+    
+    retriever = collection.as_retriever(
+        search_type=search_type,
+        search_kwargs={
+            "score_threshold": score_threshold,
+            "k": top_k,
+            "filter": metadata_filter  # <-- apply metadata filter
+        }
+    )
+    return retriever
