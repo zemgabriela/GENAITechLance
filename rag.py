@@ -1,6 +1,7 @@
 import os
 import re
 import string
+from openai import OpenAI 
 from dotenv import load_dotenv
 from PyPDF2 import PdfReader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -183,3 +184,56 @@ def load_retriever_with_metadata_from_collection(
         }
     )
     return retriever
+
+# Retrieve with expanded queries
+def retrieve_with_expanded_queries(
+    collection_name: str,
+    queries: List[str],
+    search_type: str = "similarity_score_threshold",
+    score_threshold: float = 0.3,
+    top_k: int = 5,
+    metadata_filter: dict = None
+) -> List[Document]:
+    """
+    Retrieve relevant documents from a Chroma collection using one or more expanded queries.
+
+    Args:
+        collection_name (str): Name of the Chroma collection.
+        queries (List[str]): List of queries, e.g., original query + expanded terms.
+        search_type (str): Retrieval type ("similarity_score_threshold" or "mmr").
+        score_threshold (float): Minimum similarity score.
+        top_k (int): Number of documents to return per query.
+        metadata_filter (dict): Optional metadata filter.
+
+    Returns:
+        List[Document]: Aggregated, deduplicated documents.
+    """
+    retriever = load_retriever_from_collection(
+        collection_name=collection_name,
+        search_type=search_type,
+        score_threshold=score_threshold,
+        top_k=top_k,
+        metadata_filter=metadata_filter
+    )
+    
+    results = []
+    for q in queries:
+        docs = retriever.get_relevant_documents(q)
+        results.extend(docs)
+    
+    # Deduplicate by source or content
+    unique_results = {d.metadata.get("source", d.page_content): d for d in results}
+    return list(unique_results.values())
+
+# Simple query expansion function
+def expand_query(query: str, n_terms: int = 5) -> list[str]: 
+    """ Use LLM to generate related terms for query expansion. """ 
+    client = OpenAI() 
+    prompt = f""" 
+        Generate {n_terms} synonyms of the core word/phrase of the following query for use in document retrieval. 
+        Keep them short, noun-phrases. Query: "{query}" """ 
+    
+    response = client.chat.completions.create( model="gpt-4o-mini", messages=[{"role":"user","content": prompt}], max_tokens=100 ) 
+    text = response.choices[0].message.content.strip() 
+    
+    return [t.strip("-• ") for t in text.split("\n") if t.strip()] 
